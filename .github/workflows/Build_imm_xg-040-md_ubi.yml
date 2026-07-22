@@ -239,7 +239,7 @@ jobs:
         export CCACHE_DIR=$HOME/.ccache
         export CCACHE_BASEDIR=$PWD
         
-        make -j$(nproc) -k CC="ccache gcc" CXX="ccache g++"
+        make -j$(nproc) -k CC="ccache gcc" CXX="ccache g++" || make -j1 -k CC="ccache gcc" CXX="ccache g++" V=s
 
         echo "✅ ccache 统计："
         ccache -s
