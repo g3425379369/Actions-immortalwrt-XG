@@ -1,4 +1,4 @@
-name: Build_imm_xg-040-md_ubi
+name: Build_imm_XG-040G-MD_UBI
 
 on:
   repository_dispatch:
@@ -19,7 +19,7 @@ env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: config/xg-040-md_ubi.config
+  CONFIG_FILE: config/XG-040G-MD_UBI.config
   DIY_P3_SH: diy-part3.sh
   DIY_P4_SH: diy-part4.sh
   UPLOAD_BIN_DIR: false
@@ -239,13 +239,13 @@ jobs:
         export CCACHE_DIR=$HOME/.ccache
         export CCACHE_BASEDIR=$PWD
         
-        make -j$(nproc) -k CC="ccache gcc" CXX="ccache g++"
+        make -j$(nproc) -k CC="ccache gcc" CXX="ccache g++" || make -j1 -k CC="ccache gcc" CXX="ccache g++" V=s
 
         echo "✅ ccache 统计："
         ccache -s
 
         echo "status=success" >> $GITHUB_OUTPUT
-        DEVICE_NAME="xg-040-md_ubi"
+        DEVICE_NAME="XG-040G-MD_UBI"
         echo "DEVICE_NAME=_${DEVICE_NAME}" >> $GITHUB_ENV
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
       shell: bash
@@ -289,7 +289,7 @@ jobs:
         fi
         echo "" >> release.txt
         {
-          echo "## XG-040-MD(UBI) Immortalwrt"
+          echo "## XG-040G-MD(UBI) Immortalwrt"
           echo "- 管理地址: 192.168.1.1"
           echo "  内核版本: $(grep -h "^kernel - " ${{ env.FIRMWARE }}/*.manifest 2>/dev/null | awk -F' - ' '{print $2}' || echo '未知')"
           echo "  默认用户: root"

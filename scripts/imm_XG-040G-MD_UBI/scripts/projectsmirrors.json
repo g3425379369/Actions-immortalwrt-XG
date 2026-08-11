@@ -13,9 +13,9 @@
 	],
 	"@APACHE": [
 		"https://dlcdn.apache.org",
-		"https://archive.apache.org/dist",
 		"https://mirror.aarnet.edu.au/pub/apache",
 		"https://mirror.csclub.uwaterloo.ca/apache",
+		"https://archive.apache.org/dist",
 		"https://mirror.cogentco.com/pub/apache",
 		"https://mirror.navercorp.com/apache",
 		"https://ftp.jaist.ac.jp/pub/apache",
@@ -59,8 +59,6 @@
 	],
 	"@GNOME": [
 		"https://download.gnome.org/sources",
-		"https://mirror.csclub.uwaterloo.ca/gnome/sources",
-		"https://mirrors.ustc.edu.cn/gnome/sources",
 		"https://mirror.nju.edu.cn/gnome"
 	],
 	"@OPENWRT": [
@@ -70,8 +68,8 @@
 	],
 	"@IMMORTALWRT": [
 		"https://sources-cdn.immortalwrt.org",
+		"https://sources.immortalwrt.org",
 		"https://mirror2.immortalwrt.org/sources",
-		"https://mirror.immortalwrt.org/sources",
-		"https://sources.immortalwrt.org"
+		"https://mirror.immortalwrt.org/sources"
 	]
 }
