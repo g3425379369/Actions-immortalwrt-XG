@@ -16,5 +16,6 @@ rm package/feeds/packages/v2ray-geodata
 git clone https://github.com/g3425379369/v2ray-geodata package/v2ray-geodata
 
 # modify
+rm -rf "$GITHUB_WORKSPACE/openwrt/package/system/apk"
 cp -rf "$GITHUB_WORKSPACE/scripts/imm_XG-040G-MD_UBI/"* "$GITHUB_WORKSPACE/openwrt/"
 ls -R "$GITHUB_WORKSPACE/openwrt/files"
