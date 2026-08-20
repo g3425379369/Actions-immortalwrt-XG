@@ -19,13 +19,15 @@ env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: config/XG-040G-MD_UBI.config
-  DIY_P3_SH: diy-part3.sh
-  DIY_P4_SH: diy-part4.sh
+  CONFIG_FILE: .config
+  DIY_P1_SH: diy-part1.sh
+  DIY_P2_SH: diy-part2.sh
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
+  DEVICE_TITLE: XG-040G-MD(UBI)
+  DEVICE_NAME: XG-040G-MD_UBI
 
 jobs:
   build:
@@ -37,7 +39,6 @@ jobs:
     - name: Show hardware info
       run: |
         echo "termcapinfo xterm* ti@:te@" >> ~/.screenrc
-        sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
         chmod 755 ./scripts/show_hardware_info.sh
         ./scripts/show_hardware_info.sh
   
@@ -56,7 +57,19 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo -E apt-get -y update && sudo -E apt-get -y install --no-install-recommends $(curl -fsSL https://raw.githubusercontent.com/xuxin1955/depend_ubuntu2204_openwrt/refs/heads/main/depend_ubuntu2204_openwrt)
+        sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
+        sudo echo "Types: deb
+        URIs: http://archive.ubuntu.com/ubuntu
+        Suites: noble noble-updates noble-backports
+        Components: main restricted universe multiverse
+        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+        
+        Types: deb
+        URIs: http://security.ubuntu.com/ubuntu/
+        Suites: noble-security
+        Components: main restricted universe multiverse
+        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" | sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null
+        sudo -E apt-get -y update && sudo -E apt-get -y install libmnl-dev expect android-sdk-libsparse-utils libdeflate-tools ack antlr3 asciidoc autoconf automake autotools-dev m4 autoconf-archive gnu-standards autoconf-doc libtool gettext m4-doc autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libtool llvm lrzsz msmtp ninja-build p7zip p7zip-full patch pkgconf python3 python3-pyelftools python3-setuptools python3-socks python3-dev libffi-dev libssl-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev jq
 
     - name: Cache mkbootimg deb
       uses: actions/cache@v5
@@ -73,7 +86,7 @@ jobs:
 
         if [ ! -f mkbootimg_34.0.5-12build1_all.deb ]; then
           echo "📥 mkbootimg deb not cached, downloading..."
-          wget https://github.com/xuxin1955/depend_ubuntu2204_openwrt/releases/download/ubuntu_26.04_LTS_mkbootimg/mkbootimg_34.0.5-12build1_all.deb
+          wget https://github.com/g3425379369/depend_ubuntu2204_openwrt/releases/download/ubuntu_26.04_LTS_mkbootimg/mkbootimg_34.0.5-12build1_all.deb
         else
           echo "✅ mkbootimg deb restored from cache"
         fi
@@ -107,12 +120,11 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /mnt/openwrt $GITHUB_WORKSPACE/openwrt
 
-    - name: Load custom DIY_P3_SH
+    - name: Load custom DIY_P1_SH
       run: |
-        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
-        chmod +x $DIY_P3_SH
+        chmod +x $DIY_P1_SH
         cd openwrt
-        # $GITHUB_WORKSPACE/$DIY_P3_SH
+        $GITHUB_WORKSPACE/$DIY_P1_SH
         
     - name: Update feeds
       run: |
@@ -140,12 +152,12 @@ jobs:
         chmod 755 $GITHUB_WORKSPACE/scripts/diy-part.sh
         $GITHUB_WORKSPACE/scripts/diy-part.sh
 
-    - name: Load custom DIY_P4_SH
+    - name: Load custom DIY_P2_SH
       run: |
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-        chmod +x $DIY_P4_SH
+        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
+        chmod +x $DIY_P2_SH
         cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P4_SH
+        $GITHUB_WORKSPACE/$DIY_P2_SH
       
     - name: make defconfig
       run: |
@@ -210,8 +222,6 @@ jobs:
         restore-keys: |
           ccache-${{ runner.os }}-
 
-
-
     - name: Cache toolchain
       uses: actions/cache@v5
       with:
@@ -245,9 +255,7 @@ jobs:
         ccache -s
 
         echo "status=success" >> $GITHUB_OUTPUT
-        DEVICE_NAME="XG-040G-MD_UBI"
-        echo "DEVICE_NAME=_${DEVICE_NAME}" >> $GITHUB_ENV
-        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+        echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
       shell: bash
 
     - name: df -hT
@@ -258,7 +266,7 @@ jobs:
       uses: actions/upload-artifact@main
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
       with:
-        name: OpenWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        name: OpenWrt_bin_${{ env.DEVICE_NAME }}_${{ env.FILE_DATE }}
         path: openwrt/bin
 
     - name: Organize files
@@ -275,7 +283,7 @@ jobs:
       uses: actions/upload-artifact@main
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        name: OpenWrt_firmware_${{ env.DEVICE_NAME }}_${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
 
     - name: Generate release tag
@@ -289,7 +297,7 @@ jobs:
         fi
         echo "" >> release.txt
         {
-          echo "## XG-040G-MD(UBI) Immortalwrt"
+          echo "## ${{ env.DEVICE_TITLE }} Immortalwrt"
           echo "- 管理地址: 192.168.1.1"
           echo "  内核版本: $(grep -h "^kernel - " ${{ env.FIRMWARE }}/*.manifest 2>/dev/null | awk -F' - ' '{print $2}' || echo '未知')"
           echo "  默认用户: root"
@@ -301,7 +309,6 @@ jobs:
         } >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
- 
     - name: Generate file list
       if: env.UPLOAD_RELEASE == 'true' && steps.organize.outputs.status == 'success'
       run: |
@@ -352,4 +359,3 @@ jobs:
               "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id"
           done
         fi
-        
