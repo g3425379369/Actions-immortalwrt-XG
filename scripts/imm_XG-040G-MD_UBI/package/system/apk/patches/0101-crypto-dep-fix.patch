@@ -1,0 +1,11 @@
+--- a/meson.build
++++ b/meson.build
+@@ -27,7 +27,9 @@
+ if get_option('crypto_backend') == 'openssl'
+ 	crypto_dep = dependency('openssl')
+ elif get_option('crypto_backend') == 'mbedtls'
+-	crypto_dep = [ dependency('mbedtls'), dependency('mbedcrypto') ]
++	crypto_dep = declare_dependency(
++	    dependencies: [ dependency('mbedtls'), dependency('mbedcrypto') ]
++	)
+ endif
