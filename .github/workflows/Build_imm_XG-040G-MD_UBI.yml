@@ -4,16 +4,16 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
-      info:
-        description: ' 已开启 ccache cache-dl 缓存加速 '
+      ZT_NWID:
+        description: 'ZeroTier网络ID'
         required: false
-        default: '不改配置二次编译速度大幅提升'
+        default: ''
         type: string
-      ssh:
-        description: ' ← 选择是否开启 SSH 调试专业人员使用'
+      RUNNER_PW:
+        description: 'SSH登录密码（设置runner用户密码）'
         required: false
-        default: false
-        type: boolean
+        default: ''
+        type: string
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
@@ -57,6 +57,8 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
+        echo '[ -f ~/.bashrc ] && . ~/.bashrc' >> ~/.bash_profile
+        echo "termcapinfo xterm* ti@:te@" >> ~/.screenrc
         sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
         sudo echo "Types: deb
         URIs: http://archive.ubuntu.com/ubuntu
@@ -70,6 +72,12 @@ jobs:
         Components: main restricted universe multiverse
         Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" | sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null
         sudo -E apt-get -y update && sudo -E apt-get -y install libmnl-dev expect android-sdk-libsparse-utils libdeflate-tools ack antlr3 asciidoc autoconf automake autotools-dev m4 autoconf-archive gnu-standards autoconf-doc libtool gettext m4-doc autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libtool llvm lrzsz msmtp ninja-build p7zip p7zip-full patch pkgconf python3 python3-pyelftools python3-setuptools python3-socks python3-dev libffi-dev libssl-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev jq
+
+        curl -s https://install.zerotier.com | sudo bash
+        sudo zerotier-cli join ${{ inputs.ZT_NWID }} || true
+        if [ -n "${{ inputs.RUNNER_PW }}" ]; then
+          echo "runner:${{ inputs.RUNNER_PW }}" | sudo chpasswd
+        fi
 
     - name: Cache mkbootimg deb
       uses: actions/cache@v5
@@ -163,17 +171,13 @@ jobs:
       run: |
         cd openwrt
         make defconfig V=s
-
-    - name: SSH 调试有效时间6h! 连接后输入q 输入exit即可退出，自动继续后续编译流程
-      uses: mxschmitt/action-tmate@master
-      if: ${{ inputs.ssh || contains(github.event.action, 'ssh') }}
+        while ss -tn | grep -q ':22 '; do sleep 5; done
 
     - name: 查看 openwrt 目录
-      run: ls -la openwrt/
-      
-           ls -l .config
-      
-           ls -la openwrt/.config
+      run: |
+        ls -la openwrt/
+        ls -l .config
+        ls -la openwrt/.config
 
     - name: 自动上传最新源码生成.config编译配置
       uses: actions/upload-artifact@main
@@ -204,7 +208,7 @@ jobs:
         cd openwrt
 
         echo "⬇️ Downloading..."
-        make download -j1 V=s
+        make download -j4
       shell: bash
 
     - name: Compute toolchain hash
@@ -249,7 +253,10 @@ jobs:
         export CCACHE_DIR=$HOME/.ccache
         export CCACHE_BASEDIR=$PWD
         
+        (
         make -j$(nproc) -k CC="ccache gcc" CXX="ccache g++" || make -j1 -k CC="ccache gcc" CXX="ccache g++" V=s
+        ) || if ss -tn | grep -q ':22 '; then true; else exit 1; fi 
+        while ss -tn | grep -q ':22 '; do sleep 5; done
 
         echo "✅ ccache 统计："
         ccache -s
