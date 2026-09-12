@@ -199,16 +199,7 @@ jobs:
 
     - name: Download package
       run: |
-        if [[ "${{ steps.cache-dl.outputs.cache-hit }}" == "true" ]]; then
-          echo "✅ dl cache hit"
-        else
-          echo "⚠️ dl cache miss"
-        fi
-
-        cd openwrt
-
-        echo "⬇️ Downloading..."
-        make download -j4
+        make download -j4 || true
       shell: bash
 
     - name: Compute toolchain hash
