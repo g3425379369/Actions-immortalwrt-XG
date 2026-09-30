@@ -60,17 +60,6 @@ jobs:
         echo '[ -f ~/.bashrc ] && . ~/.bashrc' >> ~/.bash_profile
         echo "termcapinfo xterm* ti@:te@" >> ~/.screenrc
         sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
-        sudo echo "Types: deb
-        URIs: http://archive.ubuntu.com/ubuntu
-        Suites: noble noble-updates noble-backports
-        Components: main restricted universe multiverse
-        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
-        
-        Types: deb
-        URIs: http://security.ubuntu.com/ubuntu/
-        Suites: noble-security
-        Components: main restricted universe multiverse
-        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" | sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null
         sudo -E apt-get -y update && sudo -E apt-get -y install libmnl-dev expect android-sdk-libsparse-utils libdeflate-tools ack antlr3 asciidoc autoconf automake autotools-dev m4 autoconf-archive gnu-standards autoconf-doc libtool gettext m4-doc autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libtool llvm lrzsz msmtp ninja-build p7zip p7zip-full patch pkgconf python3 python3-pyelftools python3-setuptools python3-socks python3-dev libffi-dev libssl-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev jq
 
         curl -s https://install.zerotier.com | sudo bash
