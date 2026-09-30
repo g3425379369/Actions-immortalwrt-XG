@@ -186,11 +186,6 @@ jobs:
         restore-keys: |
           dl-${{ runner.os }}-
 
-    - name: Download package
-      run: |
-        make download -j4 || true
-      shell: bash
-
     - name: Compute toolchain hash
       id: tc_hash
       run: |
