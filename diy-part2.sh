@@ -1,6 +1,7 @@
 #!/bin/bash
 
 git clone https://github.com/rchen14b/luci-app-airoha-npu package/luci-app-airoha-npu
+rm -rf package/luci-app-airoha-npu/luci-app-airoha-npu/
 
 # temp
 git clone https://github.com/gSpotx2f/luci-app-cpu-perf.git package/luci-app-cpu-perf
