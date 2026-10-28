@@ -68,6 +68,9 @@ jobs:
           echo "runner:${{ inputs.RUNNER_PW }}" | sudo chpasswd
         fi
         sudo apt clean
+        sudo timedatectl set-timezone "$TZ"
+        sudo chmod 777 /mnt
+        df -hT
 
     - name: Ensure Python build tools
       run: |
