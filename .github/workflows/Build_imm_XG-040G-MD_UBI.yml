@@ -67,6 +67,7 @@ jobs:
         if [ -n "${{ inputs.RUNNER_PW }}" ]; then
           echo "runner:${{ inputs.RUNNER_PW }}" | sudo chpasswd
         fi
+        sudo apt clean
 
     - name: Ensure Python build tools
       run: |
