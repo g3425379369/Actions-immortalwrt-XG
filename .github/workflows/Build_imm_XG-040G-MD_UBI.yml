@@ -93,8 +93,6 @@ jobs:
     - name: Update feeds
       run: |
         cd openwrt
-        ./scripts/feeds clean
-        rm -rf feeds
         ./scripts/feeds update -a
         
         echo "📌 Local packages feed:"
@@ -111,14 +109,9 @@ jobs:
         cd openwrt
         ./scripts/feeds install -a -f
 
-    - name: remove warning
-      run: |
-        chmod 755 $GITHUB_WORKSPACE/scripts/diy-part.sh
-        $GITHUB_WORKSPACE/scripts/diy-part.sh
-
     - name: Load custom DIY_P2_SH
       run: |
-        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
+        cp $CONFIG_FILE openwrt/.config
         chmod +x $DIY_P2_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
@@ -144,47 +137,32 @@ jobs:
          ${{ github.workspace }}/openwrt/feeds.conf.default
        include-hidden-files: true
 
-    - name: Cache dl
-      id: cache-dl
+    - name: Cache host tools
       uses: actions/cache@v5
       with:
-        path: openwrt/dl
-        key: dl-${{ runner.os }}-${{ hashFiles('openwrt/feeds.conf.default') }}
-        restore-keys: |
-          dl-${{ runner.os }}-
-
-    - name: Compute toolchain hash
-      id: tc_hash
-      run: |
-        cd openwrt
-        TOOLCHAIN_COMMIT=$(git log -1 --format=%H -- toolchain/ include/toolchain-build.mk)
-        echo "hash=$TOOLCHAIN_COMMIT" >> $GITHUB_OUTPUT
-
-    - name: Cache ccache
-      uses: actions/cache@v5
-      with:
-        path: ~/.ccache
-        key: ccache-${{ runner.os }}-${{ steps.tc_hash.outputs.hash }}
-        restore-keys: |
-          ccache-${{ runner.os }}-
+        path: |
+          /mnt/openwrt/staging_dir/host
+          /mnt/openwrt/build_dir/host
+        key: tools-${{ github.run_id }}
+        restore-keys: tools-
 
     - name: Cache toolchain
       uses: actions/cache@v5
       with:
         path: |
-          openwrt/staging_dir/toolchain-*
-          openwrt/staging_dir/host
-          openwrt/build_dir/host
-          openwrt/build_dir/toolchain-*
-        key: toolchain-${{ runner.os }}-${{ steps.tc_hash.outputs.hash }}
-        restore-keys: |
-          toolchain-${{ runner.os }}-
+          /mnt/openwrt/staging_dir/toolchain-*
+          /mnt/openwrt/build_dir/toolchain-*
+        key: tc-${{ github.run_id }}
+        restore-keys: tc-
 
-    - name: Configure ccache
-      run: |
-        mkdir -p $HOME/.ccache
-        echo "max_size = 10G" > $HOME/.ccache/ccache.conf
-        echo "compiler_check = string:${{ steps.tc_hash.outputs.hash }}" >> $HOME/.ccache/ccache.conf
+    - name: Cache dl
+      id: cache-dl
+      uses: actions/cache@v5
+      with:
+        path: openwrt/dl
+        key: dl-${{ runner.os }}-immortalwrt-${{ hashFiles('openwrt/feeds.conf.default') }}
+        restore-keys: |
+          dl-${{ runner.os }}-immortalwrt-
 
     - name: make -j$(nproc)
       id: compile
@@ -192,16 +170,10 @@ jobs:
         cd openwrt
         echo -e "$(nproc) thread compile"
 
-        export CCACHE_DIR=$HOME/.ccache
-        export CCACHE_BASEDIR=$PWD
-        
         (
-        make -j$(nproc) -k CC="ccache gcc" CXX="ccache g++" || make -j1 -k CC="ccache gcc" CXX="ccache g++" V=s
+        make -j$(nproc) -k || make -j1 -k V=s
         ) || if ss -tn | grep -q ':22 '; then true; else exit 1; fi 
         while ss -tn | grep -q ':22 '; do sleep 5; done
-
-        echo "✅ ccache 统计："
-        ccache -s
 
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
@@ -279,32 +251,3 @@ jobs:
         allowUpdates: true
         draft: false
         prerelease: true
-
-    - name: Delete old workflow runs via GitHub API
-      if: always()
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        RETAIN_DAYS: 2
-        KEEP_MINIMUM_RUNS: 2
-      run: |
-        RUNS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-          "https://api.github.com/repos/${{ github.repository }}/actions/runs?per_page=100")
-        CUTOFF=$(date -d "-${RETAIN_DAYS} days" +%s)
-        DEL_IDS=$(echo "$RUNS" | jq -r --arg cutoff "$CUTOFF" --argjson keep "$KEEP_MINIMUM_RUNS" '
-          [.workflow_runs[]
-            | select((now - (.created_at | fromdateiso8601)) > ($cutoff | tonumber))
-            | {id, created_at}
-          ]
-          | sort_by(.created_at)
-          | .[:-$keep]
-          | .[].id
-        ')
-        if [[ -z "$DEL_IDS" ]]; then
-          echo "No old runs to delete."
-        else
-          echo "$DEL_IDS" | while read run_id; do
-            echo "Deleting run $run_id"
-            curl -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
-              "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id"
-          done
-        fi
